@@ -17,6 +17,7 @@ public class TensorProdPoly {
     //
     private PolyMultiVar[][] prst = null; // r,s,t polynomials
     private int dim = 3;
+
     //==========================================================================
     // Constructor1
     public TensorProdPoly(PolyMultiVar[] pxyz) {
@@ -27,18 +28,21 @@ public class TensorProdPoly {
             dim = 2;
         }
     } // TensorProdPoly
+
     //==========================================================================
     // Constructor2
     public TensorProdPoly(int dim) {
         this.dim = dim;
         prst = null;
     } // TensorProdPoly
+    
     //==========================================================================
     // Constructor3
     public TensorProdPoly(PolyMultiVar[][] pxyz) {
         prst = pxyz;
         dim = pxyz[0].length;
     } // TensorProdPoly
+    
     //==========================================================================
     /**
      * Get a copy of the Polynomials in this TensorProdPoly
@@ -203,19 +207,34 @@ public class TensorProdPoly {
         return new TensorProdPoly(nprst);
     } // multiply   /// completed
 
-    public PolyMultiVar integrateOverTriangle(Point3d[] verts) {
+////===========================================================================================================================================================
+
+    public double integrateOverTriangle(Point3d[] verts) {
         double[][] ccx = {{verts[0].x, (verts[1].x - verts[0].x)},
         {(verts[2].x - verts[0].x), 0.0}};
         double[][] ccy = {{verts[0].y, (verts[1].y - verts[0].y)},
         {(verts[2].y - verts[0].y), 0.0}};
         double[][] ccz = {{verts[0].z, (verts[1].z - verts[0].z)},
         {(verts[2].z - verts[0].z), 0.0}};
+        double[][] cv1 = {{0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+        double[][] cv2 = {{1.0, 0.0, 0.0}, {-1.0, 0.0, 0.0}};
+        PolyMultiVar p1 = new PolyMultiVar(cv1);
+        PolyMultiVar p2 = new PolyMultiVar(cv2);
+        double[][] cv3 = {{0.0, 0.0}, {1.0, 0.0}};
+        double[][] cv4 = {{0.0, 0.0}, {0.0, 0.0}};
+        PolyMultiVar p3 = new PolyMultiVar(cv3);
+        PolyMultiVar p4 = new PolyMultiVar(cv4);
+        double sideA = Math.sqrt(Math.pow((verts[1].x - verts[0].x), 2) + Math.pow((verts[1].y - verts[0].y), 2) + Math.pow((verts[1].z - verts[0].z), 2));
+        double sideB = Math.sqrt(Math.pow((verts[2].x - verts[1].x), 2) + Math.pow((verts[2].y - verts[1].y), 2) + Math.pow((verts[2].z - verts[1].z), 2));
+        double sideC = Math.sqrt(Math.pow((verts[0].x - verts[2].x), 2) + Math.pow((verts[0].y - verts[2].y), 2) + Math.pow((verts[0].z - verts[2].z), 2));
+        double s = 0.5 * (sideA + sideB + sideC);
+        double area = Math.sqrt(s * (s - sideA) * (s - sideB) * (s - sideC));        
         PolyMultiVar xPoly = new PolyMultiVar(ccx);
         PolyMultiVar yPoly = new PolyMultiVar(ccy);
         PolyMultiVar zPoly = new PolyMultiVar(ccz);
         PolyMultiVar[] xyzPolys = {xPoly, yPoly, zPoly};
         PolyMultiVar result = null;
-
+////===========================================================================================================================================================
         for (int ii = 0; ii < prst.length; ii++) {
             PolyMultiVar polyProduct = prst[ii][0].changeVariable(xyzPolys[0], xyzPolys[1]);
             for (int jj = 1; jj < prst[0].length; jj++) {
@@ -231,7 +250,30 @@ public class TensorProdPoly {
                 result = result.add(polyProduct);
             }
         }
-        return result;
+////===========================================================================================================================================================
+        
+        System.out.println("\n");
+        PolyMultiVar tppot1 = result.computeIntegralWRTdr();
+        System.out.println("\n  polynomial after first integration \n");
+        tppot1.print("rr", "ss");
+        System.out.println("\n");
+        PolyMultiVar tppot2 = tppot1.changeVariable(p1, p2);
+        tppot2.print("rr", "ss");
+        System.out.println("\n");
+        PolyMultiVar tppot3 = tppot1.changeVariable(p3, p4);
+        System.out.println("\n  polynomial after first integration and substitution \n");
+        PolyMultiVar tppot4 = tppot2.add(tppot3.scale(-1.0));
+        tppot4.print("rr", "ss");
+        System.out.println("\n  polynomial after second integration  \n");
+        PolyMultiVar tppot5 = tppot4.computeIntegralWRTds();
+        tppot5.print("rr", "ss");
+        System.out.println("\n");
+        double val = tppot5.evaluate(0.0, 1.0) - tppot4.evaluate(0.0, 0.0);
+        System.out.println("\n");
+        val = val * 2.0 * area;
+        val = Math.abs(val);
+        System.out.println("area of the triangle: " + area + " & value after integration : " + val);
+        return val;
     }
 
     //==========================================================================
@@ -283,20 +325,19 @@ public class TensorProdPoly {
         double[][] cc = {{9.0, 3.0, 5.0}, {4.0, 5.0, 9.0}, {12.0, 3.0, 2.0}};
         double[][] dd = {{9.0, 4.0, 8.0}, {3.0, 5.0, 6.0}, {2.0, 6.0, 1.0}};
         double[][] ee = {{3.0, 5.0, 8.0}, {3.0, 7.0, 6.0}, {1.0, 4.0, 6.0}};
-        PolyMultiVar[] poly = {new PolyMultiVar(cc), new PolyMultiVar(dd), new PolyMultiVar(ee)};
-        TensorProdPoly tpp = new TensorProdPoly(poly);
-        double[] cc1 = {9.0, 3.0, 5.0};
-        double[] dd1 = {6.0, 7.0, 3.0};
-        double[] ee1 = {2.0, 9.0, 4.0};
-
-        Point3d[] verts = {new Point3d(cc1), new Point3d(dd1), new Point3d(ee1)};
-        // tpp.print();
+        double[][] ff1 = {{1.0}};
+        double[][] ff2 = {{1.0, 1.0}, {1.0, 1.0}};
+        double[] cc1 = {1.0, 1.0, 0.0};
+        double[] dd1 = {0.0, 1.0, 0.0};
+        double[] ee1 = {1.0, 0.0, 0.0};
+        Point3d[] verts = {new Point3d(cc1), new Point3d(dd1), new Point3d(ee1)};        
+        PolyMultiVar[] poly = {new PolyMultiVar(cc), new PolyMultiVar(dd), new PolyMultiVar(ee)};        
+        PolyMultiVar[][] poly1 = {{new PolyMultiVar(ff1)}};
+        PolyMultiVar[][] poly2 = {{new PolyMultiVar(ff1)}};
+        TensorProdPoly tpp = new TensorProdPoly(poly2);
         System.out.println("\n");
-        PolyMultiVar tppot = tpp.integrateOverTriangle(verts);
-        //System.out.println(tppot);
-        tppot.print("rr", "ss");
-        System.out.println("\n");
-        tppot.computeIntegralWRTdr().print("rr", "ss");
+        double val = tpp.integrateOverTriangle(verts);
+        
     }
 
 }

@@ -4,11 +4,13 @@
  * and open the template in the editor.
  */
 package Interpolation;
+
 /**
  *
  * @author Santosh
  */
 public class PolyMultiVar {
+
     // polynomial in two variables
     // poly = cc[0][0] + cc[0][1]*r + cc[1][0]*s + cc[1][1]*r*s + cc[0][2]*r^2 + cc[2][0]*s^2 + cc[2][2]*r^2*s^2 .....
     private double[][] cc = null; // Polynomial coefficients 
@@ -127,10 +129,18 @@ public class PolyMultiVar {
         double[][] cn = new double[cc.length + poly.cc.length - 1][cc[0].length + poly.cc[0].length - 1];
         //   cn = null;
         PolyMultiVar p1 = new PolyMultiVar(cn);
-        for (double[] cc1 : cc) {
+        for (int ii = 0; ii < cc.length; ii++) {
             for (int jj = 0; jj < cc[0].length; jj++) {
-                PolyMultiVar poly1 = poly.scale(cc1[jj]);
-                p1 = poly1.add(p1);
+                PolyMultiVar poly1 = poly.scale(cc[ii][jj]);
+
+                double[][] dd = new double[ii + poly1.cc.length][jj + poly1.cc[0].length];
+                for (int kk = 0; kk < poly1.cc.length; kk++) {
+                    for (int tt = 0; tt < poly1.cc[0].length; tt++) {
+                        dd[ii + kk][jj + tt] += poly1.cc[kk][tt];
+                    }
+                }
+                poly1 = new PolyMultiVar(dd);
+                p1 = p1.add(poly1);
                 //cn[ii][jj] = cc[ii][] * poly.cc[jj][];
             }
         }
@@ -151,59 +161,63 @@ public class PolyMultiVar {
     public PolyMultiVar changeVariable(PolyMultiVar poly1, PolyMultiVar poly2) {
         double[][] ncc = new double[1][1];
         ncc[0][0] = cc[0][0];
-        if (cc.length == 1 && cc[0].length == 1) {
-            return new PolyMultiVar(ncc);
-        }
-        PolyMultiVar nPoly = new PolyMultiVar(ncc);
+        PolyMultiVar nPoly = new PolyMultiVar(new double[cc.length][cc[0].length]);
         PolyMultiVar spolyPowerI = new PolyMultiVar(poly1.cc);
         PolyMultiVar rpolyPowerI = new PolyMultiVar(poly2.cc);
 ///////////================================================================
-        if (cc.length > 1) {
+        for (int jj = 0; jj < 2; jj++) {
             for (int ii = 0; ii < 2; ii++) {
-                for (int jj = 0; jj < cc[0].length; jj++) {
-                    if (jj > 1 && ii == 0) {
-                        rpolyPowerI = rpolyPowerI.multiply(poly2);
-                        nPoly = nPoly.add(rpolyPowerI.scale(cc[ii][jj]));
-                    }
+                if (jj == 0 && ii == 0) {
+                    nPoly = nPoly.add(new PolyMultiVar(ncc));
                 }
-            }
-            for (int ii = 0; ii < 2; ii++) {
-                for (int jj = 0; jj < cc.length; jj++) {
-                    if (jj > 1 && ii == 1) {
-                        rpolyPowerI = rpolyPowerI.multiply(poly2);
-                        nPoly = nPoly.add((spolyPowerI.multiply(rpolyPowerI)).scale(cc[ii][jj]));
-                    }
+                if (jj == 0 && ii == 1 && cc.length > 1) {
+                    nPoly = nPoly.add((spolyPowerI).scale(cc[ii][jj]));
                 }
-            }
-            for (int ii = 0; ii < 2; ii++) {
-                for (int jj = 0; jj < cc[0].length; jj++) {
-                    if (ii == 0 && jj > 1) {
-                        spolyPowerI = spolyPowerI.multiply(poly1);
-                        nPoly = nPoly.add(spolyPowerI.scale(cc[ii][jj]));
-                    }
+                if (jj == 1 && ii == 0 && cc[0].length > 1) {
+                    nPoly = nPoly.add(rpolyPowerI.scale(cc[ii][jj]));
+                }
+                if (jj == 1 && ii == 1 && cc.length > 1 && cc[0].length > 1) {
+                    nPoly = nPoly.add((spolyPowerI.multiply(rpolyPowerI)).scale(cc[ii][jj]));
                 }
             }
         }
-        if (cc[0].length > 1) {
-            for (int ii = 0; ii < 2; ii++) {
-                for (int jj = 0; jj < cc.length; jj++) {
-                    if (ii == 1 && jj > 1) {
-                        spolyPowerI.cc = poly1.cc;
-                        spolyPowerI = spolyPowerI.multiply(poly1);
-                        nPoly = nPoly.add((rpolyPowerI.multiply(spolyPowerI)).scale(cc[jj][ii]));
-                    }
-                }
-            }
-        }
-//////////=============================================== for rows and coloumns more than 2 
-        for (int ii = 2; ii < cc.length; ii++) {
-            spolyPowerI = spolyPowerI.multiply(poly1);
+        for (int ii = 0; ii < 2; ii++) {
+            rpolyPowerI = new PolyMultiVar(poly2.cc);
             for (int jj = 2; jj < cc[0].length; jj++) {
                 rpolyPowerI = rpolyPowerI.multiply(poly2);
-                //polyPowerI.scale(cc[ii][jj])    
-                PolyMultiVar polyPowerI = spolyPowerI.multiply(rpolyPowerI);
-                polyPowerI = polyPowerI.scale(cc[ii][jj]);
-                nPoly = nPoly.add(polyPowerI);
+                if (ii == 0 && cc[0].length > 2) {
+                    nPoly = nPoly.add(rpolyPowerI.scale(cc[ii][jj]));
+                }
+                if (ii == 1 && cc.length > 1 && cc[0].length > 2) {
+                    nPoly = nPoly.add((spolyPowerI.multiply(rpolyPowerI)).scale(cc[ii][jj]));
+                }
+            }
+        }
+        rpolyPowerI = new PolyMultiVar(poly2.cc);
+        for (int ii = 2; ii < cc.length; ii++) {
+            spolyPowerI = spolyPowerI.multiply(poly1);
+            for (int jj = 0; jj < 2; jj++) {
+                if (jj == 0 && cc.length > 2) {
+                    nPoly = nPoly.add(spolyPowerI.scale(cc[ii][jj]));
+                }
+                if (jj == 1 && cc[0].length > 1 && cc.length > 2) {
+                    nPoly = nPoly.add((spolyPowerI.multiply(rpolyPowerI)).scale(cc[ii][jj]));
+                }
+            }
+        }
+///////////================================================================
+//////////=============================================== for rows and coloumns more than 2 
+        spolyPowerI = new PolyMultiVar(poly1.cc);
+        for (int ii = 2; ii < cc.length; ii++) {
+            rpolyPowerI = new PolyMultiVar(poly2.cc);
+            spolyPowerI = spolyPowerI.multiply(poly1);
+            for (int jj = 2; jj < cc[0].length; jj++) {
+                if (cc.length > 2 && cc[0].length > 2) {
+                    rpolyPowerI = rpolyPowerI.multiply(poly2);
+                    PolyMultiVar polyPowerI = spolyPowerI.multiply(rpolyPowerI);
+                    polyPowerI = polyPowerI.scale(cc[ii][jj]);
+                    nPoly = nPoly.add(polyPowerI);
+                }
             }
         }
         return nPoly;
@@ -222,10 +236,10 @@ public class PolyMultiVar {
      * @return - derivative as a polynomial
      */
     public PolyMultiVar computeDerivativeWRTr() {
-        double[][] dd = new double[cc.length][cc[0].length];
+        double[][] dd = new double[cc.length][cc[0].length - 1];
         for (int ii = 0; ii < dd.length; ii++) {
             for (int jj = 0; jj < dd[0].length; jj++) {
-                if (jj == dd[0].length - 1) {
+                if (jj == dd[0].length) {
                     dd[ii][jj] = 0.0;
                 } else {
                     dd[ii][jj] = (cc[ii][jj + 1]) * (jj + 1);
@@ -242,11 +256,12 @@ public class PolyMultiVar {
      * @return - derivative as a polynomial
      */
     public PolyMultiVar computeDerivativeWRTs() {
-        double[][] dd = new double[cc.length][cc[0].length];
+        double[][] dd = new double[cc.length - 1][cc[0].length];
         for (int ii = 0; ii < dd.length; ii++) {
             for (int jj = 0; jj < dd[0].length; jj++) {
-                if (ii == dd.length - 1) {
+                if (ii == dd.length) {
                     dd[ii][jj] = 0.0;
+
                 } else {
                     dd[ii][jj] = (cc[ii + 1][jj]) * (ii + 1);
                 }
@@ -268,8 +283,8 @@ public class PolyMultiVar {
      */
     public PolyMultiVar computeIntegralWRTdr() {
         double[][] dd = new double[cc.length][cc[0].length + 1];
-        for (int ii = 0; ii < cc.length; ii++) {
-            for (int jj = 0; jj < cc[0].length; jj++) {
+        for (int ii = 0; ii < dd.length; ii++) {
+            for (int jj = 0; jj < dd[0].length - 1; jj++) {
                 if (jj == 0) {
                     dd[ii][jj] = 0.0;
                     dd[ii][jj + 1] += (cc[ii][jj]) * (1.0 / (jj + 1));
@@ -289,12 +304,14 @@ public class PolyMultiVar {
      */
     public PolyMultiVar computeIntegralWRTds() {
         double[][] dd = new double[cc.length + 1][cc[0].length];
-        for (int ii = dd.length - 1; ii >= 0; ii--) {
-            for (int jj = dd[0].length - 1; jj >= 0; jj--) {
+
+        for (int jj = 0; jj < dd[0].length; jj++) {
+            for (int ii = 0; ii < dd.length - 1; ii++) {
                 if (ii == 0) {
                     dd[ii][jj] = 0.0;
+                    dd[ii + 1][jj] += (cc[ii][jj]) * (1.0 / (ii + 1));
                 } else {
-                    dd[ii][jj] = (cc[ii - 1][jj]) * (1.0 / ii);
+                    dd[ii + 1][jj] += (cc[ii][jj]) * (1.0 / (ii + 1));
                 }
             }
         }
@@ -373,7 +390,7 @@ public class PolyMultiVar {
 
         double[][] cc = {{9.0, 3.0, 5.0}, {4.0, 5.0, 9.0}, {2.0, 3.0, 1.0}};
         double[][] dd = {{9.0, 3.0, 5.0}, {4.0, 5.0, 9.0}, {2.0, 3.0, 1.0}};
-
+        /*
         PolyMultiVar p1 = new PolyMultiVar(cc);
         PolyMultiVar p2 = p1.computeDerivativeWRTr();
         PolyMultiVar p3 = p1.computeDerivativeWRTs();
@@ -385,10 +402,20 @@ public class PolyMultiVar {
         System.out.println("\n");
         p5.print("rr", "ss");
         System.out.println("\n");
-
+         */
+        double[][] cv1 = {{0.0}, {1.0}};
+        double[][] cv2 = {{1.0}, {-1.0}};
+        PolyMultiVar p1 = new PolyMultiVar(cv1);
+        PolyMultiVar p2 = new PolyMultiVar(cv2);
+        PolyMultiVar p5 = new PolyMultiVar(dd);
+        p5.print("rr", "ss");
+        System.out.println("\n");
+        p5.changeVariable(p1, p2).print("rr", "ss");
+        /*
         p4.computeDerivativeWRTs().computeDerivativeWRTr().print("rr", "ss");
         System.out.println("\n");
-        p5.computeIntegralWRTdr().computeIntegralWRTds().print("rr", "ss");
+        p5.computeIntegralWRTdr().computeIntegralWRTds().computeIntegralWRTds().print("rr", "ss");
         System.out.println("\n");
+         */
     }
 }
